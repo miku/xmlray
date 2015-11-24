@@ -2,7 +2,9 @@ package xmlray
 
 import (
 	"encoding/xml"
+	"fmt"
 	"io"
+	"log"
 	"strings"
 )
 
@@ -42,4 +44,11 @@ func VisitElements(r io.Reader, visit VisitorFunc) {
 			}
 		}
 	}
+}
+
+func PrintVisitor(s string, err error) {
+	if err != nil {
+		log.Fatal(err)
+	}
+	fmt.Println(s)
 }

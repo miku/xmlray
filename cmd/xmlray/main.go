@@ -2,7 +2,6 @@ package main
 
 import (
 	"flag"
-	"fmt"
 	"io"
 	"log"
 	"os"
@@ -25,10 +24,5 @@ func main() {
 		rdr = file
 	}
 
-	xmlray.VisitElements(rdr, func(s string, err error) {
-		if err != nil {
-			log.Fatal(err)
-		}
-		fmt.Println(s)
-	})
+	xmlray.VisitElements(rdr, xmlray.PrintVisitor)
 }
