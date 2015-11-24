@@ -15,6 +15,17 @@ Usage
     /a/b
     /a/b/c
 
+Note that this is similar to [xml2](http://dan.egnor.name/xml2/ref):
+
+    $ xml2 < fixtures/sample.xml
+    /a/b/c
+    /a/b
+    /a/b/c
+
+If the xml2 flat format is sufficient, we will switch to it - however,
+some use cases might be difficult to support with a more verbose format,
+that lists *all* nodes.
+
     $ xmlray fixtures/oai.xml
     /record
     /record/header
