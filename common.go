@@ -24,7 +24,7 @@ func VisitElements(r io.Reader, visit VisitorFunc) {
 			break
 		}
 		if err != nil {
-			visit(stack.String(), nil)
+			visit(stack.String(), err)
 		}
 		switch tok := tok.(type) {
 		case xml.StartElement:
