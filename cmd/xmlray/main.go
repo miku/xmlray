@@ -24,5 +24,15 @@ func main() {
 		rdr = file
 	}
 
-	xmlray.VisitElements(rdr, xmlray.PrintVisitor)
+	// visitor := xmlray.VisitorFunc(func(s string) error {
+	// 	fmt.Println(s)
+	// 	return nil
+	// })
+
+	visitor := xmlray.NewCompactVisitor("/article")
+	err := xmlray.VisitElements(rdr, visitor)
+
+	if err != nil {
+		log.Fatal(err)
+	}
 }

@@ -4,12 +4,19 @@ import (
 	"encoding/xml"
 	"fmt"
 	"io"
-	"log"
 	"strings"
 )
 
+type Visitor interface {
+	Visit(string) error
+}
+
 // VisitorFunc will be called with the current path string and the XML element.
-type VisitorFunc func(string, error)
+type VisitorFunc func(string) error
+
+func (f VisitorFunc) Visit(s string) error {
+	return f(s)
+}
 
 type Stack []string
 
@@ -17,7 +24,7 @@ func (s Stack) String() string {
 	return "/" + strings.Join(s, "/")
 }
 
-func VisitElements(r io.Reader, visit VisitorFunc) {
+func VisitElements(r io.Reader, v Visitor) error {
 	dec := xml.NewDecoder(r)
 	var stack Stack
 	for {
@@ -26,29 +33,54 @@ func VisitElements(r io.Reader, visit VisitorFunc) {
 			break
 		}
 		if err != nil {
-			visit(stack.String(), err)
+			return err
 		}
 		switch tok := tok.(type) {
 		case xml.StartElement:
 			stack = append(stack, tok.Name.Local)
-			visit(stack.String(), nil)
+			if err := v.Visit(stack.String()); err != nil {
+				return err
+			}
 			for _, attr := range tok.Attr {
-				visit(stack.String()+"/@"+attr.Name.Local, nil)
+				if err := v.Visit(stack.String() + "/@" + attr.Name.Local); err != nil {
+					return err
+				}
 			}
 		case xml.EndElement:
 			stack = stack[:len(stack)-1]
 		case xml.CharData:
 			cleaned := strings.TrimSpace(string(tok))
 			if cleaned != "" {
-				visit(stack.String()+"/#", nil)
+				if err := v.Visit(stack.String() + "/#"); err != nil {
+					return err
+				}
 			}
 		}
 	}
+	return nil
 }
 
-func PrintVisitor(s string, err error) {
-	if err != nil {
-		log.Fatal(err)
+type CompactVisitor struct {
+	Path string
+	m    map[string]int
+}
+
+func NewCompactVisitor(s string) *CompactVisitor {
+	return &CompactVisitor{Path: s, m: make(map[string]int)}
+}
+
+func (v CompactVisitor) Visit(s string) error {
+	if s == v.Path {
+		if v.m != nil {
+			for k, v := range v.m {
+				fmt.Println(k, v)
+			}
+			fmt.Println("--")
+		}
+		for k := range v.m {
+			delete(v.m, k)
+		}
 	}
-	fmt.Println(s)
+	v.m[s]++
+	return nil
 }
