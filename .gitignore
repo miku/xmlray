@@ -25,3 +25,6 @@ _testmain.go
 
 /xmlray
 /fixtures/output.txt.gz
+/fixtures/100k.xml
+/fixtures/10M.xml
+/fixtures/sv.tsv
