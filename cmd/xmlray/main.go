@@ -1,3 +1,4 @@
+// xmlray is a little x-ray things for xml.
 package main
 
 import (
