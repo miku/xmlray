@@ -97,6 +97,14 @@ func (v SchemaVisitor) Visit(s string) error {
 // Flush prints out the remaining. Necessary, because only StartElement events
 // are observed. TODO(miku): observe all events?
 func (v SchemaVisitor) Flush() error {
+	// last update of seen and repeatable
+	for k, count := range v.m {
+		v.seen[k] = true
+		if count > 1 {
+			v.repeatable[k] = true
+		}
+	}
+
 	if v.Verbose {
 		log.Println("flushing visitor")
 	}
