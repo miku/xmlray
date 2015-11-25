@@ -79,12 +79,13 @@ func VisitNodes(r io.Reader, v Visitor) error {
 type CompactVisitor struct {
 	Path string
 	m    map[string]int
+	sep  string
 }
 
 // NewCompactVisitor returns a new compact visitor, given a path element, that
 // is taken as the root element.
 func NewCompactVisitor(s string) *CompactVisitor {
-	return &CompactVisitor{Path: s, m: make(map[string]int)}
+	return &CompactVisitor{Path: s, m: make(map[string]int), sep: "----"}
 }
 
 // Visit visits nodes and keeps track of how often a particular type has been
@@ -94,12 +95,10 @@ func (v CompactVisitor) Visit(s string) error {
 		return nil
 	}
 	if s == v.Path {
-		if v.m != nil {
-			for k, v := range v.m {
-				fmt.Println(k, v)
-			}
-			fmt.Println("--")
+		for k, v := range v.m {
+			fmt.Println(k, v)
 		}
+		fmt.Println(v.sep)
 		for k := range v.m {
 			delete(v.m, k)
 		}
