@@ -24,3 +24,4 @@ _testmain.go
 *.prof
 
 /xmlray
+/fixtures/output.txt.gz
