@@ -9,6 +9,7 @@ import (
 
 type Visitor interface {
 	Visit(string) error
+	Flush() error
 }
 
 // VisitorFunc will be called with the current path string and the XML element.
@@ -16,6 +17,10 @@ type VisitorFunc func(string) error
 
 func (f VisitorFunc) Visit(s string) error {
 	return f(s)
+}
+
+func (f VisitorFunc) Flush() error {
+	return nil
 }
 
 type Stack []string
@@ -57,7 +62,7 @@ func VisitElements(r io.Reader, v Visitor) error {
 			}
 		}
 	}
-	return nil
+	return v.Flush()
 }
 
 type CompactVisitor struct {
@@ -70,6 +75,9 @@ func NewCompactVisitor(s string) *CompactVisitor {
 }
 
 func (v CompactVisitor) Visit(s string) error {
+	if len(s) < len(v.Path) {
+		return nil
+	}
 	if s == v.Path {
 		if v.m != nil {
 			for k, v := range v.m {
@@ -82,5 +90,12 @@ func (v CompactVisitor) Visit(s string) error {
 		}
 	}
 	v.m[s]++
+	return nil
+}
+
+func (v CompactVisitor) Flush() error {
+	for k, v := range v.m {
+		fmt.Println(k, v)
+	}
 	return nil
 }

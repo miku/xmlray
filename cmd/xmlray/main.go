@@ -2,6 +2,7 @@ package main
 
 import (
 	"flag"
+	"fmt"
 	"io"
 	"log"
 	"os"
@@ -10,6 +11,9 @@ import (
 )
 
 func main() {
+
+	visitorName := flag.String("visitor", "default", "name of visitor to use")
+	path := flag.String("path", "", "path to use for compact visitor")
 
 	flag.Parse()
 
@@ -24,14 +28,21 @@ func main() {
 		rdr = file
 	}
 
-	// visitor := xmlray.VisitorFunc(func(s string) error {
-	// 	fmt.Println(s)
-	// 	return nil
-	// })
+	var visitor xmlray.Visitor
 
-	visitor := xmlray.NewCompactVisitor("/article")
+	switch *visitorName {
+	case "default":
+		visitor = xmlray.VisitorFunc(func(s string) error {
+			fmt.Println(s)
+			return nil
+		})
+	case "c", "compact":
+		visitor = xmlray.NewCompactVisitor(*path)
+	default:
+		log.Fatal("unknown visitor, use: default or compact")
+	}
+
 	err := xmlray.VisitElements(rdr, visitor)
-
 	if err != nil {
 		log.Fatal(err)
 	}
