@@ -15,6 +15,7 @@ func main() {
 
 	visitorName := flag.String("visitor", "default", "name of visitor to use")
 	path := flag.String("path", "", "path to use for compact visitor")
+	verbose := flag.Bool("verbose", false, "be verbose")
 
 	flag.Parse()
 
@@ -40,7 +41,7 @@ func main() {
 	case "c", "compact":
 		visitor = xmlray.NewCompactVisitor(*path)
 	case "s", "schema":
-		visitor = xmlray.NewSchemaVisitor(*path)
+		visitor = xmlray.NewSchemaVisitor(*path, *verbose)
 	default:
 		log.Fatal("unknown visitor, use: default, compact, schema")
 	}
