@@ -139,7 +139,7 @@ func NewSchemaVisitor(s string) *SchemaVisitor {
 // Visit visits nodes and keeps track of how often a particular type has been
 // seen.
 func (v SchemaVisitor) Visit(s string) error {
-	if len(s) < len(v.Path) {
+	if !strings.HasPrefix(s, v.Path) {
 		return nil
 	}
 	if s == v.Path {
