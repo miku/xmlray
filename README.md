@@ -154,7 +154,7 @@ Overview of element usage:
 
 Preliminary schema visitor:
 
-    $ xmlray -visitor schema -path /record <(zcat xMetaDissPlus.xml.gz)
+    $ xmlray -visitor schema -path /record <(zcat fixtures/xMetaDissPlus.xml.gz)
     /record
     /record/header
     /record/header/datestamp
