@@ -119,3 +119,35 @@ that lists *all* nodes.
     /record/metadata/dc/type/#
     /record/metadata/dc/identifier
     /record/metadata/dc/identifier/#
+
+Overview of element usage:
+
+    $ xmlray fixtures/oai.xml | sort | uniq -c | sort -nr
+      5 /record/metadata/dc/subject/#
+      5 /record/metadata/dc/subject
+      5 /record/metadata/dc/description/#
+      5 /record/metadata/dc/description
+      3 /record/metadata/dc/type/#
+      3 /record/metadata/dc/type
+      3 /record/metadata/dc/title/#
+      3 /record/metadata/dc/title
+      3 /record/metadata/dc/identifier/#
+      3 /record/metadata/dc/identifier
+      3 /record/metadata/dc/date/#
+      3 /record/metadata/dc/date
+      3 /record/metadata/dc/creator/#
+      3 /record/metadata/dc/creator
+      3 /record/metadata/dc/@xsi
+      3 /record/metadata/dc/@schemaLocation
+      3 /record/metadata/dc/@oai_dc
+      3 /record/metadata/dc/@dc
+      3 /record/metadata/dc
+      3 /record/metadata
+      3 /record/header/setSpec/#
+      3 /record/header/setSpec
+      3 /record/header/identifier/#
+      3 /record/header/identifier
+      3 /record/header/datestamp/#
+      3 /record/header/datestamp
+      3 /record/header
+      3 /record
