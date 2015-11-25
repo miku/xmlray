@@ -42,7 +42,7 @@ func main() {
 		log.Fatal("unknown visitor, use: default or compact")
 	}
 
-	err := xmlray.VisitElements(rdr, visitor)
+	err := xmlray.VisitNodes(rdr, visitor)
 	if err != nil {
 		log.Fatal(err)
 	}
