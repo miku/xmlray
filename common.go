@@ -4,6 +4,7 @@ import (
 	"encoding/xml"
 	"fmt"
 	"io"
+	"sort"
 	"strings"
 )
 
@@ -112,6 +113,65 @@ func (v CompactVisitor) Visit(s string) error {
 func (v CompactVisitor) Flush() error {
 	for k, v := range v.m {
 		fmt.Println(k, v)
+	}
+	return nil
+}
+
+// SchemaVisitor helps infering a simple schema.
+type SchemaVisitor struct {
+	Path string
+	// seen keeps track of all observed paths, elements, attributes and chardata nodes
+	seen map[string]bool
+	// repeatable keeps track, which elements are observed multiple time within a unit
+	repeatable map[string]bool
+	m          map[string]int
+}
+
+// NewCompactVisitor returns a new compact visitor, given a path element, that
+// is taken as the root element.
+func NewSchemaVisitor(s string) *SchemaVisitor {
+	return &SchemaVisitor{Path: s,
+		m:          make(map[string]int),
+		seen:       make(map[string]bool),
+		repeatable: make(map[string]bool)}
+}
+
+// Visit visits nodes and keeps track of how often a particular type has been
+// seen.
+func (v SchemaVisitor) Visit(s string) error {
+	if len(s) < len(v.Path) {
+		return nil
+	}
+	if s == v.Path {
+		for k, count := range v.m {
+			v.seen[k] = true
+			if count > 1 {
+				v.repeatable[k] = true
+			}
+		}
+		for k := range v.m {
+			delete(v.m, k)
+		}
+	}
+	v.m[s]++
+	return nil
+}
+
+// Flush prints out the remaining. Necessary, because only StartElement events
+// are observed. TODO(miku): observe all events?
+func (v SchemaVisitor) Flush() error {
+	var lines []string
+	for k, _ := range v.seen {
+		_, found := v.repeatable[k]
+		if found {
+			lines = append(lines, fmt.Sprintf("[]"+k))
+		} else {
+			lines = append(lines, fmt.Sprintf(k))
+		}
+	}
+	sort.Strings(lines)
+	for _, line := range lines {
+		fmt.Println(line)
 	}
 	return nil
 }

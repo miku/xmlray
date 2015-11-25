@@ -31,15 +31,17 @@ func main() {
 	var visitor xmlray.Visitor
 
 	switch *visitorName {
-	case "default":
+	case "d", "default":
 		visitor = xmlray.VisitorFunc(func(s string) error {
 			fmt.Println(s)
 			return nil
 		})
 	case "c", "compact":
 		visitor = xmlray.NewCompactVisitor(*path)
+	case "s", "schema":
+		visitor = xmlray.NewSchemaVisitor(*path)
 	default:
-		log.Fatal("unknown visitor, use: default or compact")
+		log.Fatal("unknown visitor, use: default, compact, schema")
 	}
 
 	if err := xmlray.VisitNodes(rdr, visitor); err != nil {
