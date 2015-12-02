@@ -297,3 +297,46 @@ Preliminary schema visitor:
     []/record/metadata/xMetaDiss/type
     []/record/metadata/xMetaDiss/type/#
     []/record/metadata/xMetaDiss/type/@type
+
+How could some generated code look like?
+
+Input
+-----
+
+    /record
+    /record/header
+    /record/header/datestamp
+    /record/header/datestamp/#
+    /record/header/identifier
+    /record/header/identifier/#
+    /record/metadata
+    /record/metadata/xMetaDiss
+    /record/metadata/xMetaDiss/@aiiso
+
+Output
+------
+
+    type Record struct {
+        xml.Name `xml:"record"`
+        Header struct {
+            xml.Name          `xml:"header"`
+            Datestamp  string `xml:"datestamp"`
+            Identifier string `xml:"identifier"`
+        }
+        Metadata struct {
+            xml.Name `xml:"metadata"`
+            XMetaDiss struct {
+                xml.Name `xml:"xMetaDiss"`
+                Aiiso string `xml:"aiiso,attr"`
+            }
+        }
+    }
+
+The smallest unit would probably be:
+
+    {{ .Name }} {{ if .IsList }} [] {{ end }} struct {
+        xml.Name `xml:"{{ .Tag }}"`
+        {{ range .Children }}
+            // self
+        {{ end }}
+    }
