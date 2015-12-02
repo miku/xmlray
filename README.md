@@ -326,7 +326,7 @@ Output
         Metadata struct {
             xml.Name `xml:"metadata"`
             XMetaDiss struct {
-                xml.Name `xml:"xMetaDiss"`
+                xml.Name     `xml:"xMetaDiss"`
                 Aiiso string `xml:"aiiso,attr"`
             }
         }
