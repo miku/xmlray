@@ -49,8 +49,9 @@ func (v CompactVisitor) Flush() error {
 	return nil
 }
 
-// SchemaVisitor helps infering a simple schema.
+// SchemaVisitor helps inferring a simple schema.
 type SchemaVisitor struct {
+	// Path names the root element.
 	Path    string
 	Verbose bool
 	// seen keeps track of all observed paths, elements, attributes and chardata nodes
@@ -94,8 +95,7 @@ func (v SchemaVisitor) Visit(s string) error {
 	return nil
 }
 
-// Flush prints out the remaining. Necessary, because only StartElement events
-// are observed. TODO(miku): observe all events?
+// Flush dumps all seen nodes to stdout.
 func (v SchemaVisitor) Flush() error {
 	// last update of seen and repeatable
 	for k, count := range v.m {
