@@ -28,3 +28,4 @@ _testmain.go
 /fixtures/100k.xml
 /fixtures/10M.xml
 /fixtures/sv.tsv
+On*.md
