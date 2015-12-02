@@ -11,13 +11,21 @@ import (
 	"github.com/miku/xmlray"
 )
 
+const Version = "0.0.1"
+
 func main() {
 
 	visitorName := flag.String("visitor", "default", "name of visitor to use")
 	path := flag.String("path", "", "path to use for compact visitor")
 	verbose := flag.Bool("verbose", false, "be verbose")
+	version := flag.Bool("v", false, "show version and exit")
 
 	flag.Parse()
+
+	if *version {
+		fmt.Println(Version)
+		os.Exit(0)
+	}
 
 	var rdr io.Reader
 	if flag.NArg() == 0 {
