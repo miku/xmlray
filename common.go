@@ -5,6 +5,9 @@ import (
 	"encoding/xml"
 	"io"
 	"strings"
+
+	"code.google.com/p/go-charset/charset"
+	_ "code.google.com/p/go-charset/data"
 )
 
 // Visitor is a simpQle visitor, that works with strings.
@@ -40,6 +43,7 @@ func (s Stack) String() string {
 // reader.
 func VisitNodes(r io.Reader, v Visitor) error {
 	dec := xml.NewDecoder(r)
+	dec.CharsetReader = charset.NewReader
 	var stack Stack
 	for {
 		tok, err := dec.Token()
