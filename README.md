@@ -300,6 +300,9 @@ Preliminary schema visitor:
     []/record/metadata/xMetaDiss/type/#
     []/record/metadata/xMetaDiss/type/@type
 
+A dumb schema inferring
+[visitor](https://asciinema.org/a/3x6u9yv2nsyqaf85evuu27tav).
+
 How could some generated code look like?
 
 Input

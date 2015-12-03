@@ -154,15 +154,15 @@ func (v *GroupingVisitor) handle() {
 		_, found := v.seen[k]
 		if !found {
 			if c > 1 {
-				fmt.Printf("L%010d\tNew[repeatable]: %s\n", v.counter, k)
+				log.Printf("L%010d\tNew[repeatable]: %s\n", v.counter, k)
 				v.seen[k] = 2
 			} else {
-				fmt.Printf("L%010d\tNew[single]: %s\n", v.counter, k)
+				log.Printf("L%010d\tNew[single]: %s\n", v.counter, k)
 				v.seen[k] = 1
 			}
 		} else {
 			if c > 1 && v.seen[k] < 2 {
-				fmt.Printf("L%010d\tUpgrade[repeatable]: %s\n", v.counter, k)
+				log.Printf("L%010d\tUpgrade[repeatable]: %s\n", v.counter, k)
 				v.seen[k] = 2
 			}
 		}
@@ -187,7 +187,7 @@ func (v *GroupingVisitor) Visit(s string) error {
 	// log.Println(v)
 	v.counter++
 	if v.counter%1000000 == 0 {
-		fmt.Printf("L%010d\n", v.counter)
+		log.Printf("L%010d\n", v.counter)
 	}
 	return nil
 }
@@ -198,7 +198,7 @@ func (v GroupingVisitor) Flush() error {
 	if err != nil {
 		return err
 	}
-	fmt.Println("Inferred arity:")
+	log.Println("Inferred arity:")
 	fmt.Println(string(b))
 	return nil
 }
