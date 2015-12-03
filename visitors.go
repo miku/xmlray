@@ -136,10 +136,12 @@ type GroupingVisitor struct {
 	seen map[string]int
 	// line counter
 	counter int
+	// skip contains all prefixes, that can be skipped
+	skip map[string]bool
 }
 
 func NewGroupingVisitor(p string) *GroupingVisitor {
-	return &GroupingVisitor{Path: p, pathbuf: []string{}, seen: make(map[string]int)}
+	return &GroupingVisitor{Path: p, pathbuf: []string{}, seen: make(map[string]int), skip: make(map[string]bool)}
 }
 
 func (v *GroupingVisitor) handle() {
@@ -153,6 +155,11 @@ func (v *GroupingVisitor) handle() {
 	for k, c := range counts {
 		_, found := v.seen[k]
 		if !found {
+			if strings.Contains(k, "@") {
+				log.Printf("L%010d\tNew[attr]: %s\n", v.counter, k)
+				v.seen[k] = 1
+				continue
+			}
 			if c > 1 {
 				log.Printf("L%010d\tNew[repeatable]: %s\n", v.counter, k)
 				v.seen[k] = 2
@@ -161,6 +168,9 @@ func (v *GroupingVisitor) handle() {
 				v.seen[k] = 1
 			}
 		} else {
+			if strings.Contains(k, "@") {
+				continue
+			}
 			if c > 1 && v.seen[k] < 2 {
 				log.Printf("L%010d\tUpgrade[repeatable]: %s\n", v.counter, k)
 				v.seen[k] = 2
@@ -178,6 +188,23 @@ func (v *GroupingVisitor) Visit(s string) error {
 	if !strings.HasPrefix(s, v.Path) {
 		return nil
 	}
+
+	for prefix := range v.skip {
+		if strings.HasPrefix(s, prefix) {
+			return nil
+		}
+	}
+
+	if strings.HasSuffix(s, "/italic") || strings.HasSuffix(s, "/p") || strings.HasSuffix(s, "/bold") || strings.HasSuffix(s, "/underline") {
+		_, found := v.skip[s]
+		if !found {
+			log.Printf("L%010d\tNew[skip]: %s\n", v.counter, s)
+			v.skip[s] = true
+			return nil
+		}
+
+	}
+
 	if s == v.Path {
 		v.handle()
 		v.pathbuf = v.pathbuf[:0]
