@@ -50,6 +50,8 @@ func main() {
 		visitor = xmlray.NewCompactVisitor(*path)
 	case "s", "schema":
 		visitor = xmlray.NewSchemaVisitor(*path, *verbose)
+	case "g", "grouping":
+		visitor = xmlray.NewGroupingVisitor(*path)
 	default:
 		log.Fatal("unknown visitor, use: default, compact, schema")
 	}

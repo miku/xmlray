@@ -1,6 +1,7 @@
 package xmlray
 
 import (
+	"bytes"
 	"fmt"
 	"log"
 	"sort"
@@ -122,5 +123,40 @@ func (v SchemaVisitor) Flush() error {
 	for _, line := range lines {
 		fmt.Println(line)
 	}
+	return nil
+}
+
+type GroupingVisitor struct {
+	Path string
+	buf  *bytes.Buffer
+}
+
+func NewGroupingVisitor(p string) *GroupingVisitor {
+	var buf bytes.Buffer
+	return &GroupingVisitor{Path: p, buf: &buf}
+}
+
+func (v GroupingVisitor) handle(s string) {
+	s = strings.TrimSpace(s)
+	// log.Println("--------")
+	fmt.Println(s)
+	// log.Println("--------")
+}
+
+func (v GroupingVisitor) Visit(s string) error {
+	if !strings.HasPrefix(s, v.Path) {
+		return nil
+	}
+	if s == v.Path {
+		v.handle(v.buf.String())
+		v.buf.Reset()
+	}
+	v.buf.WriteString(s + "\n")
+	return nil
+}
+
+func (v GroupingVisitor) Flush() error {
+	v.handle(v.buf.String())
+	log.Println("bye")
 	return nil
 }
