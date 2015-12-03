@@ -62,8 +62,6 @@ type SchemaVisitor struct {
 	m          map[string]int
 }
 
-// NewCompactVisitor returns a new compact visitor, given a path element, that
-// is taken as the root element.
 func NewSchemaVisitor(s string, verbose bool) *SchemaVisitor {
 	return &SchemaVisitor{Path: s,
 		Verbose:    verbose,
@@ -127,7 +125,9 @@ func (v SchemaVisitor) Flush() error {
 }
 
 type GroupingVisitor struct {
-	Path    string
+	// Path is the path to the desired root element
+	Path string
+	// pathbuf buffers all paths found below a root
 	pathbuf []string
 
 	// number of paths in document
@@ -177,11 +177,6 @@ func (v *GroupingVisitor) handle() {
 			}
 		}
 	}
-	// b, err := json.Marshal(v.seen)
-	// if err != nil {
-	// 	log.Fatal(err)
-	// }
-	// fmt.Println(string(b))
 }
 
 func (v *GroupingVisitor) Visit(s string) error {
@@ -209,9 +204,7 @@ func (v *GroupingVisitor) Visit(s string) error {
 		v.handle()
 		v.pathbuf = v.pathbuf[:0]
 	}
-	// v.buf.WriteString(s + "\n")
 	v.pathbuf = append(v.pathbuf, strings.TrimSpace(s))
-	// log.Println(v)
 	v.counter++
 	if v.counter%1000000 == 0 {
 		log.Printf("L%010d\n", v.counter)
@@ -225,7 +218,6 @@ func (v GroupingVisitor) Flush() error {
 	if err != nil {
 		return err
 	}
-	log.Println("Inferred arity:")
 	fmt.Println(string(b))
 	return nil
 }
