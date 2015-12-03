@@ -1,7 +1,7 @@
 package xmlray
 
 import (
-	"bytes"
+	"encoding/json"
 	"fmt"
 	"log"
 	"sort"
@@ -127,36 +127,78 @@ func (v SchemaVisitor) Flush() error {
 }
 
 type GroupingVisitor struct {
-	Path string
-	buf  *bytes.Buffer
+	Path    string
+	pathbuf []string
+
+	// number of paths in document
+	cardinality map[string]int
+	// seen records the type
+	seen map[string]int
+	// line counter
+	counter int
 }
 
 func NewGroupingVisitor(p string) *GroupingVisitor {
-	var buf bytes.Buffer
-	return &GroupingVisitor{Path: p, buf: &buf}
+	return &GroupingVisitor{Path: p, pathbuf: []string{}, seen: make(map[string]int)}
 }
 
-func (v GroupingVisitor) handle(s string) {
-	s = strings.TrimSpace(s)
-	// log.Println("--------")
-	fmt.Println(s)
-	// log.Println("--------")
+func (v *GroupingVisitor) handle() {
+	if len(v.pathbuf) == 0 {
+		return
+	}
+	counts := make(map[string]int, len(v.pathbuf))
+	for _, p := range v.pathbuf {
+		counts[p]++
+	}
+	for k, c := range counts {
+		_, found := v.seen[k]
+		if !found {
+			if c > 1 {
+				fmt.Printf("L%010d\tNew[repeatable]: %s\n", v.counter, k)
+				v.seen[k] = 2
+			} else {
+				fmt.Printf("L%010d\tNew[single]: %s\n", v.counter, k)
+				v.seen[k] = 1
+			}
+		} else {
+			if c > 1 && v.seen[k] < 2 {
+				fmt.Printf("L%010d\tUpgrade[repeatable]: %s\n", v.counter, k)
+				v.seen[k] = 2
+			}
+		}
+	}
+	// b, err := json.Marshal(v.seen)
+	// if err != nil {
+	// 	log.Fatal(err)
+	// }
+	// fmt.Println(string(b))
 }
 
-func (v GroupingVisitor) Visit(s string) error {
+func (v *GroupingVisitor) Visit(s string) error {
 	if !strings.HasPrefix(s, v.Path) {
 		return nil
 	}
 	if s == v.Path {
-		v.handle(v.buf.String())
-		v.buf.Reset()
+		v.handle()
+		v.pathbuf = v.pathbuf[:0]
 	}
-	v.buf.WriteString(s + "\n")
+	// v.buf.WriteString(s + "\n")
+	v.pathbuf = append(v.pathbuf, strings.TrimSpace(s))
+	// log.Println(v)
+	v.counter++
+	if v.counter%1000000 == 0 {
+		fmt.Printf("L%010d\n", v.counter)
+	}
 	return nil
 }
 
 func (v GroupingVisitor) Flush() error {
-	v.handle(v.buf.String())
-	log.Println("bye")
+	v.handle()
+	b, err := json.Marshal(v.seen)
+	if err != nil {
+		return err
+	}
+	fmt.Println("Inferred arity:")
+	fmt.Println(string(b))
 	return nil
 }
