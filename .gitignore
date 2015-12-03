@@ -29,3 +29,4 @@ _testmain.go
 /fixtures/10M.xml
 /fixtures/sv.tsv
 On*.md
+/tmp
