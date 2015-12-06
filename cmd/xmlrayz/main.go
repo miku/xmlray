@@ -62,7 +62,7 @@ func main() {
 	}
 
 	br := bufio.NewReader(r)
-	if err := VisitReader(br, &xmlray.NamespaceLister{}); err != nil {
+	if err := VisitReader(br, &xmlray.PathVisitor{}); err != nil {
 		log.Fatal(err)
 	}
 }

@@ -128,3 +128,25 @@ func (v *TagnameLister) Flush() error {
 	fmt.Println(string(b))
 	return nil
 }
+
+type PathVisitor struct {
+	stack []string
+}
+
+func (v *PathVisitor) Visit(node interface{}) error {
+	switch node := node.(type) {
+	case xml.StartElement:
+		v.stack = append(v.stack, node.Name.Local)
+		if len(v.stack) > 0 {
+			fmt.Println(strings.Join(v.stack, "/"))
+		}
+	case xml.EndElement:
+		v.stack = v.stack[:len(v.stack)-1]
+	}
+	return nil
+}
+
+// Flush dumps result to stdout.
+func (v *PathVisitor) Flush() error {
+	return nil
+}
