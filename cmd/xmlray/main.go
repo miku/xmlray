@@ -51,7 +51,9 @@ func main() {
 	case "s", "schema":
 		visitor = xmlray.NewSchemaVisitor(*path, *verbose)
 	case "g", "grouping":
-		visitor = xmlray.NewGroupingVisitor(*path)
+		v := xmlray.NewGroupingVisitor(*path)
+		v.StopSuffix = []string{"/italic", "/p", "/bold", "/underline"}
+		visitor = v
 	default:
 		log.Fatal("unknown visitor, use: default, compact, schema")
 	}

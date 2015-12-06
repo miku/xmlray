@@ -129,9 +129,9 @@ type GroupingVisitor struct {
 	Path string
 	// pathbuf buffers all paths found below a root
 	pathbuf []string
+	// StopSuffix contains leaf names, that should stop deeper processing.
+	StopSuffix []string
 
-	// number of paths in document
-	cardinality map[string]int
 	// seen records the type
 	seen map[string]int
 	// line counter
@@ -141,7 +141,8 @@ type GroupingVisitor struct {
 }
 
 func NewGroupingVisitor(p string) *GroupingVisitor {
-	return &GroupingVisitor{Path: p, pathbuf: []string{}, seen: make(map[string]int), skip: make(map[string]bool)}
+	return &GroupingVisitor{Path: p, StopSuffix: []string{},
+		pathbuf: []string{}, seen: make(map[string]int), skip: make(map[string]bool)}
 }
 
 func (v *GroupingVisitor) handle() {
@@ -183,23 +184,21 @@ func (v *GroupingVisitor) Visit(s string) error {
 	if !strings.HasPrefix(s, v.Path) {
 		return nil
 	}
-
 	for prefix := range v.skip {
 		if strings.HasPrefix(s, prefix) {
 			return nil
 		}
 	}
-
-	if strings.HasSuffix(s, "/italic") || strings.HasSuffix(s, "/p") || strings.HasSuffix(s, "/bold") || strings.HasSuffix(s, "/underline") {
-		_, found := v.skip[s]
-		if !found {
-			log.Printf("L%010d\tNew[skip]: %s\n", v.counter, s)
-			v.skip[s] = true
-			return nil
+	for _, suffix := range v.StopSuffix {
+		if strings.HasSuffix(s, suffix) {
+			_, found := v.skip[s]
+			if !found {
+				log.Printf("L%010d\tNew[skip]: %s\n", v.counter, s)
+				v.skip[s] = true
+				return nil
+			}
 		}
-
 	}
-
 	if s == v.Path {
 		v.handle()
 		v.pathbuf = v.pathbuf[:0]
