@@ -55,7 +55,7 @@ func main() {
 		v.StopSuffix = []string{"/italic", "/p", "/bold", "/underline"}
 		visitor = v
 	default:
-		log.Fatal("unknown visitor, use: default, compact, schema")
+		log.Fatal("unknown visitor, use: default, compact, schema, grouping")
 	}
 
 	if err := xmlray.VisitNodes(rdr, visitor); err != nil {
