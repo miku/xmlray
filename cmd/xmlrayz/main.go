@@ -40,6 +40,8 @@ func VisitReader(r io.Reader, v xmlray.NodeVisitor) error {
 
 func main() {
 
+	// path := flag.String("path", "", "path to element of interest")
+	vtype := flag.String("type", "path", "visitor type")
 	version := flag.Bool("v", false, "show version and exit")
 
 	flag.Parse()
@@ -47,6 +49,15 @@ func main() {
 	if *version {
 		fmt.Println(Version)
 		os.Exit(0)
+	}
+
+	visitors := map[string]xmlray.NodeVisitor{
+		"string": xmlray.ChardataExtractor{},
+		"debug":  xmlray.DebugVisitor{},
+		"path":   &xmlray.PathVisitor{},
+		"ns":     &xmlray.NamespaceLister{},
+		"tag":    &xmlray.TagnameLister{},
+		// "group":  &xmlray.GroupVisitor{Path: *path},
 	}
 
 	var r io.Reader
@@ -61,8 +72,12 @@ func main() {
 		r = file
 	}
 
-	br := bufio.NewReader(r)
-	if err := VisitReader(br, &xmlray.PathVisitor{}); err != nil {
+	visitor, ok := visitors[*vtype]
+	if !ok {
+		log.Fatal("unknown visitor")
+	}
+
+	if err := VisitReader(bufio.NewReader(r), visitor); err != nil {
 		log.Fatal(err)
 	}
 }

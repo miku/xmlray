@@ -129,6 +129,7 @@ func (v *TagnameLister) Flush() error {
 	return nil
 }
 
+// PathVisitor lists all path (from start elements).
 type PathVisitor struct {
 	stack []string
 }
@@ -138,7 +139,7 @@ func (v *PathVisitor) Visit(node interface{}) error {
 	case xml.StartElement:
 		v.stack = append(v.stack, node.Name.Local)
 		if len(v.stack) > 0 {
-			fmt.Println(strings.Join(v.stack, "/"))
+			fmt.Println(v.Path())
 		}
 	case xml.EndElement:
 		v.stack = v.stack[:len(v.stack)-1]
@@ -150,3 +151,54 @@ func (v *PathVisitor) Visit(node interface{}) error {
 func (v *PathVisitor) Flush() error {
 	return nil
 }
+
+func (v *PathVisitor) Path() string {
+	return "/" + strings.Join(v.stack, "/")
+}
+
+// type GroupVisitor struct {
+// 	// Path of interest.
+// 	Path string
+// 	// pv visits paths.
+// 	pv PathVisitor
+
+// 	// skip keeps prefixes to skip
+// 	skippref map[string]bool
+// 	// stopsuffix keeps show stoppers
+// 	StopSuffixes []string
+// }
+
+// func (v *GroupVisitor) Visit(node interface{}) error {
+// 	if err := v.pv.Visit(node); err != nil {
+// 		return err
+// 	}
+// 	if _, ok := node.(xml.StartElement); !ok {
+// 		return nil
+// 	}
+// 	s := v.pv.Path()
+// 	if !strings.HasPrefix(s, v.Path) {
+// 		return nil
+// 	}
+// 	for prefix := range v.skippref {
+// 		if strings.HasPrefix(s, prefix) {
+// 			return nil
+// 		}
+// 	}
+// 	for _, suffix := range v.StopSuffixes {
+// 		if strings.HasSuffix(s, suffix) {
+// 			if _, found := v.skippref[s]; !found {
+// 				v.skippref[s] = true
+// 				return nil
+// 			}
+// 		}
+// 	}
+// 	if s == v.Path {
+// 		// process
+// 		log.Println(v.pv.Path())
+// 	}
+// 	return nil
+// }
+
+// func (v *GroupVisitor) Flush() error {
+// 	return nil
+// }
