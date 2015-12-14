@@ -206,3 +206,61 @@ func (v *GroupVisitor) Visit(node interface{}) error {
 	}
 	return nil
 }
+
+type info struct{}
+
+type TreeVisitor struct {
+	PathPrefix string
+	stack      []string
+	recording  bool
+	// store info per node
+	nodes map[string]info
+	// childmap
+	childmap map[string][]string
+}
+
+func NewTreeVisitor(path string) *TreeVisitor {
+	return &TreeVisitor{
+		PathPrefix: path,
+		nodes:      make(map[string]info),
+		childmap:   make(map[string][]string),
+	}
+}
+
+func (v *TreeVisitor) path() string {
+	return "/" + strings.Join(v.stack, "/")
+}
+
+func (v *TreeVisitor) parent() string {
+	if len(v.stack) < 2 {
+		return ""
+	}
+	return "/" + strings.Join(v.stack[:len(v.stack)-1], "/")
+}
+
+func (v *TreeVisitor) Visit(node interface{}) error {
+	switch node := node.(type) {
+	case xml.StartElement:
+		if v.path() == v.PathPrefix {
+			v.recording = true
+		}
+		v.stack = append(v.stack, node.Name.Local)
+		if v.recording {
+			v.childmap[v.parent()] = append(v.childmap[v.parent()], v.path())
+		}
+	case xml.EndElement:
+		if v.path() == v.PathPrefix {
+			v.recording = false
+			b, err := json.Marshal(v.childmap)
+			if err != nil {
+				return err
+			}
+			fmt.Println(string(b))
+			v.childmap = make(map[string][]string)
+		}
+		v.stack = v.stack[:len(v.stack)-1]
+		return nil
+
+	}
+	return nil
+}
