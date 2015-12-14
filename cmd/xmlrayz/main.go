@@ -16,7 +16,7 @@ import (
 	_ "code.google.com/p/go-charset/data"
 )
 
-const Version = "0.0.2"
+const Version = "0.0.3"
 
 // Visit lets a Visitor v visit most nodes in a XML doc wrapped in a
 // reader.
@@ -35,7 +35,7 @@ func VisitReader(r io.Reader, v xmlray.NodeVisitor) error {
 			return err
 		}
 	}
-	return v.Flush()
+	return v.Visit(nil)
 }
 
 func main() {
