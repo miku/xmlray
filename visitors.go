@@ -156,11 +156,22 @@ func (v *GroupVisitor) path() string {
 	return "/" + strings.Join(v.stack, "/")
 }
 
+// updateMapping updates the globale entry map.
+func (v *GroupVisitor) updateMapping() {
+	for _, name := range v.nodeNames {
+		log.Println(name)
+	}
+	log.Println("----")
+}
+
 func (v *GroupVisitor) Visit(node interface{}) error {
 	switch node := node.(type) {
 	case xml.CharData:
 		if v.recording {
 			last := v.nodeNames[len(v.nodeNames)-1]
+			if strings.Contains(last, "@") {
+				return nil
+			}
 			if last != "char" && strings.TrimSpace(string(node)) != "" {
 				v.nodeNames = append(v.nodeNames, last+"/#")
 			}
@@ -170,13 +181,13 @@ func (v *GroupVisitor) Visit(node interface{}) error {
 		if strings.HasPrefix(v.path(), v.PathPrefix) {
 			v.recording = true
 			v.nodeNames = append(v.nodeNames, v.path())
+			for _, attr := range node.Attr {
+				v.nodeNames = append(v.nodeNames, v.path()+"/@"+attr.Name.Local)
+			}
 		}
 	case xml.EndElement:
 		if v.path() == v.PathPrefix {
-			for _, name := range v.nodeNames {
-				log.Println(name)
-			}
-			log.Println("----")
+			v.updateMapping()
 			v.nodeNames = v.nodeNames[:0]
 			v.recording = false
 		}
