@@ -18,8 +18,7 @@ import (
 
 const Version = "0.0.3"
 
-// Visit lets a Visitor v visit most nodes in a XML doc wrapped in a
-// reader.
+// Visit lets a Visitor v visit all nodes in a XML doc wrapped in a reader.
 func VisitReader(r io.Reader, v xmlray.NodeVisitor) error {
 	dec := xml.NewDecoder(r)
 	dec.CharsetReader = charset.NewReader
@@ -60,16 +59,16 @@ func main() {
 		// "group":  &xmlray.GroupVisitor{Path: *path},
 	}
 
-	var r io.Reader
+	var reader io.Reader
 
 	if flag.NArg() == 0 {
-		r = os.Stdin
+		reader = os.Stdin
 	} else {
 		file, err := os.Open(flag.Arg(0))
 		if err != nil {
 			log.Fatal(err)
 		}
-		r = file
+		reader = file
 	}
 
 	visitor, ok := visitors[*vtype]
@@ -77,7 +76,7 @@ func main() {
 		log.Fatal("unknown visitor")
 	}
 
-	if err := VisitReader(bufio.NewReader(r), visitor); err != nil {
+	if err := VisitReader(bufio.NewReader(reader), visitor); err != nil {
 		log.Fatal(err)
 	}
 }
