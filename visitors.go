@@ -2,221 +2,188 @@ package xmlray
 
 import (
 	"encoding/json"
+	"encoding/xml"
 	"fmt"
 	"log"
-	"sort"
 	"strings"
 )
 
-// CompactVisitor keeps track how many elements of a particular type have been
-// observed.
-type CompactVisitor struct {
-	Path string
-	m    map[string]int
-	sep  string
+const NoNameSpaceKey = "none"
+
+// NodeVisitor gets passed one of the XML nodes. The sentinel value is nil.
+type NodeVisitor interface {
+	Visit(interface{}) error
 }
 
-// NewCompactVisitor returns a new compact visitor, given a path element, that
-// is taken as the root element.
-func NewCompactVisitor(s string) *CompactVisitor {
-	return &CompactVisitor{Path: s, m: make(map[string]int), sep: "----"}
-}
+// DebugVisitor displays node information.
+type DebugVisitor struct{}
 
-// Visit visits nodes and keeps track of how often a particular type has been
-// seen.
-func (v CompactVisitor) Visit(s string) error {
-	if len(s) < len(v.Path) {
-		return nil
-	}
-	if s == v.Path {
-		for k, v := range v.m {
-			fmt.Println(k, v)
-		}
-		fmt.Println(v.sep)
-		for k := range v.m {
-			delete(v.m, k)
-		}
-	}
-	v.m[s]++
-	return nil
-}
-
-// Flush prints out the remaining. Necessary, because only StartElement events
-// are observed. TODO(miku): observe all events?
-func (v CompactVisitor) Flush() error {
-	for k, v := range v.m {
-		fmt.Println(k, v)
+// Visits prints debug info on nodes.
+func (v DebugVisitor) Visit(node interface{}) error {
+	switch node := node.(type) {
+	case xml.StartElement:
+		log.Printf("%T %s:%s", node, node.Name.Space, node.Name.Local)
+	case xml.EndElement:
+		log.Printf("%T %s:%s", node, node.Name.Space, node.Name.Local)
+	case xml.CharData:
+		s := string(node)
+		l := len(s)
+		stripped := strings.TrimSpace(s)
+		log.Printf("%T s='%s', %d/%d", node, stripped, l, len(stripped))
 	}
 	return nil
 }
 
-// SchemaVisitor helps inferring a simple schema.
-type SchemaVisitor struct {
-	// Path names the root element.
-	Path    string
-	Verbose bool
-	// seen keeps track of all observed paths, elements, attributes and chardata nodes
-	seen map[string]bool
-	// repeatable keeps track, which elements are observed multiple time within a unit
-	repeatable map[string]bool
-	m          map[string]int
-}
+// ChardataExtractor extracts only strings.
+type ChardataExtractor struct{}
 
-func NewSchemaVisitor(s string, verbose bool) *SchemaVisitor {
-	return &SchemaVisitor{Path: s,
-		Verbose:    verbose,
-		m:          make(map[string]int),
-		seen:       make(map[string]bool),
-		repeatable: make(map[string]bool)}
-}
-
-// Visit visits nodes and keeps track of how often a particular type has been
-// seen.
-func (v SchemaVisitor) Visit(s string) error {
-	if v.Verbose {
-		log.Printf("%+v -- %s", v, s)
-	}
-	if !strings.HasPrefix(s, v.Path) {
-		return nil
-	}
-	if s == v.Path {
-		for k, count := range v.m {
-			v.seen[k] = true
-			if count > 1 {
-				v.repeatable[k] = true
-			}
+// Visit extracts text, if node is CharData.
+func (v ChardataExtractor) Visit(node interface{}) error {
+	switch node := node.(type) {
+	case xml.CharData:
+		s := strings.TrimSpace(string(node))
+		if len(s) > 0 {
+			fmt.Println(s)
 		}
-		for k := range v.m {
-			delete(v.m, k)
-		}
-	}
-	v.m[s]++
-	return nil
-}
-
-// Flush dumps all seen nodes to stdout.
-func (v SchemaVisitor) Flush() error {
-	// last update of seen and repeatable
-	for k, count := range v.m {
-		v.seen[k] = true
-		if count > 1 {
-			v.repeatable[k] = true
-		}
-	}
-
-	if v.Verbose {
-		log.Println("flushing visitor")
-	}
-
-	var lines []string
-	for k, _ := range v.seen {
-		_, found := v.repeatable[k]
-		if found {
-			lines = append(lines, fmt.Sprintf("[]"+k))
-		} else {
-			lines = append(lines, fmt.Sprintf(k))
-		}
-	}
-	sort.Strings(lines)
-	for _, line := range lines {
-		fmt.Println(line)
 	}
 	return nil
 }
 
-type GroupingVisitor struct {
-	// Path is the path to the desired root element
-	Path string
-	// pathbuf buffers all paths found below a root
-	pathbuf []string
-	// StopSuffix contains leaf names, that should stop deeper processing.
-	StopSuffix []string
-
-	// seen records the type
-	seen map[string]int
-	// line counter
-	counter int
-	// skip contains all prefixes, that can be skipped
-	skip map[string]bool
+// NamespaceLister collects namespace usage.
+type NamespaceLister struct {
+	ns map[string]int
 }
 
-func NewGroupingVisitor(p string) *GroupingVisitor {
-	return &GroupingVisitor{Path: p, StopSuffix: []string{},
-		pathbuf: []string{}, seen: make(map[string]int), skip: make(map[string]bool)}
-}
-
-func (v *GroupingVisitor) handle() {
-	if len(v.pathbuf) == 0 {
-		return
+// Visit collects the namespace from start elements.
+func (v *NamespaceLister) Visit(node interface{}) error {
+	if v.ns == nil {
+		v.ns = make(map[string]int)
 	}
-	counts := make(map[string]int, len(v.pathbuf))
-	for _, p := range v.pathbuf {
-		counts[p]++
-	}
-	for k, c := range counts {
-		_, found := v.seen[k]
-		if !found {
-			if strings.Contains(k, "@") {
-				log.Printf("L%010d\tNew[attr]: %s\n", v.counter, k)
-				v.seen[k] = 1
-				continue
-			}
-			if c > 1 {
-				log.Printf("L%010d\tNew[repeatable]: %s\n", v.counter, k)
-				v.seen[k] = 2
-			} else {
-				log.Printf("L%010d\tNew[single]: %s\n", v.counter, k)
-				v.seen[k] = 1
-			}
-		} else {
-			if strings.Contains(k, "@") {
-				continue
-			}
-			if c > 1 && v.seen[k] < 2 {
-				log.Printf("L%010d\tUpgrade[repeatable]: %s\n", v.counter, k)
-				v.seen[k] = 2
-			}
+	switch node := node.(type) {
+	case xml.StartElement:
+		switch node.Name.Space {
+		case "":
+			v.ns[NoNameSpaceKey]++
+		default:
+			v.ns[node.Name.Space]++
 		}
-	}
-}
-
-func (v *GroupingVisitor) Visit(s string) error {
-	if !strings.HasPrefix(s, v.Path) {
-		return nil
-	}
-	for prefix := range v.skip {
-		if strings.HasPrefix(s, prefix) {
-			return nil
-		}
-	}
-	for _, suffix := range v.StopSuffix {
-		if strings.HasSuffix(s, suffix) {
-			_, found := v.skip[s]
-			if !found {
-				log.Printf("L%010d\tNew[skip]: %s\n", v.counter, s)
-				v.skip[s] = true
-				return nil
-			}
-		}
-	}
-	if s == v.Path {
-		v.handle()
-		v.pathbuf = v.pathbuf[:0]
-	}
-	v.pathbuf = append(v.pathbuf, strings.TrimSpace(s))
-	v.counter++
-	if v.counter%1000000 == 0 {
-		log.Printf("L%010d\n", v.counter)
+	case nil:
+		return v.flush()
 	}
 	return nil
 }
 
-func (v GroupingVisitor) Flush() error {
-	v.handle()
-	b, err := json.Marshal(v.seen)
+// flush dumps result to stdout.
+func (v *NamespaceLister) flush() error {
+	b, err := json.Marshal(v.ns)
 	if err != nil {
 		return err
 	}
 	fmt.Println(string(b))
+	return nil
+}
+
+type TagnameLister struct {
+	tags map[string]map[string]int
+}
+
+// Visit collects the namespace from start elements.
+func (v *TagnameLister) Visit(node interface{}) error {
+	if v.tags == nil {
+		v.tags = make(map[string]map[string]int)
+	}
+	switch node := node.(type) {
+	case xml.StartElement:
+		switch node.Name.Space {
+		case "":
+			if v.tags[NoNameSpaceKey] == nil {
+				v.tags[NoNameSpaceKey] = make(map[string]int)
+			}
+			v.tags[NoNameSpaceKey][node.Name.Local]++
+		default:
+			if v.tags[node.Name.Space] == nil {
+				v.tags[node.Name.Space] = make(map[string]int)
+			}
+			v.tags[node.Name.Space][node.Name.Local]++
+		}
+	case nil:
+		return v.flush()
+	}
+	return nil
+}
+
+// flush dumps result to stdout.
+func (v *TagnameLister) flush() error {
+	b, err := json.Marshal(v.tags)
+	if err != nil {
+		return err
+	}
+	fmt.Println(string(b))
+	return nil
+}
+
+// PathVisitor lists all path (from start elements).
+type PathVisitor struct {
+	stack []string
+}
+
+func (v *PathVisitor) path() string {
+	return "/" + strings.Join(v.stack, "/")
+}
+
+func (v *PathVisitor) Visit(node interface{}) error {
+	switch node := node.(type) {
+	case xml.StartElement:
+		v.stack = append(v.stack, node.Name.Local)
+		if len(v.stack) > 0 {
+			fmt.Println(v.path())
+		}
+	case xml.EndElement:
+		v.stack = v.stack[:len(v.stack)-1]
+	}
+	return nil
+}
+
+// GroupVisitor groups elements starting at PathPrefix.
+type GroupVisitor struct {
+	PathPrefix string
+	stack      []string
+	nodeNames  []string
+	recording  bool
+}
+
+func (v *GroupVisitor) path() string {
+	return "/" + strings.Join(v.stack, "/")
+}
+
+func (v *GroupVisitor) Visit(node interface{}) error {
+	switch node := node.(type) {
+	case xml.CharData:
+		if v.recording {
+			last := v.nodeNames[len(v.nodeNames)-1]
+			if last != "char" && strings.TrimSpace(string(node)) != "" {
+				v.nodeNames = append(v.nodeNames, last+"/#")
+			}
+		}
+	case xml.StartElement:
+		v.stack = append(v.stack, node.Name.Local)
+		if strings.HasPrefix(v.path(), v.PathPrefix) {
+			v.recording = true
+			v.nodeNames = append(v.nodeNames, v.path())
+		}
+	case xml.EndElement:
+		if v.path() == v.PathPrefix {
+			for _, name := range v.nodeNames {
+				log.Println(name)
+			}
+			log.Println("----")
+			v.nodeNames = v.nodeNames[:0]
+			v.recording = false
+		}
+		v.stack = v.stack[:len(v.stack)-1]
+		return nil
+	default:
+		return nil
+	}
 	return nil
 }

@@ -2,6 +2,8 @@
 package main
 
 import (
+	"bufio"
+	"encoding/xml"
 	"flag"
 	"fmt"
 	"io"
@@ -9,15 +11,36 @@ import (
 	"os"
 
 	"github.com/miku/xmlray"
+
+	"code.google.com/p/go-charset/charset"
+	_ "code.google.com/p/go-charset/data"
 )
 
-const Version = "0.0.2"
+const Version = "0.0.3"
+
+// Visit lets a Visitor v visit all nodes in a XML doc wrapped in a reader.
+func VisitReader(r io.Reader, v xmlray.NodeVisitor) error {
+	dec := xml.NewDecoder(r)
+	dec.CharsetReader = charset.NewReader
+	for {
+		tok, err := dec.Token()
+		if err == io.EOF {
+			break
+		}
+		if err != nil {
+			return err
+		}
+		if err := v.Visit(tok); err != nil {
+			return err
+		}
+	}
+	return v.Visit(nil)
+}
 
 func main() {
 
-	visitorName := flag.String("visitor", "default", "name of visitor to use")
-	path := flag.String("path", "", "path to use for compact visitor")
-	verbose := flag.Bool("verbose", false, "be verbose")
+	path := flag.String("path", "", "path to element of interest")
+	vtype := flag.String("type", "path", "visitor type")
 	version := flag.Bool("v", false, "show version and exit")
 
 	flag.Parse()
@@ -27,38 +50,33 @@ func main() {
 		os.Exit(0)
 	}
 
-	var rdr io.Reader
+	visitors := map[string]xmlray.NodeVisitor{
+		"string": xmlray.ChardataExtractor{},
+		"debug":  xmlray.DebugVisitor{},
+		"path":   &xmlray.PathVisitor{},
+		"ns":     &xmlray.NamespaceLister{},
+		"tag":    &xmlray.TagnameLister{},
+		"group":  &xmlray.GroupVisitor{PathPrefix: *path},
+	}
+
+	var reader io.Reader
+
 	if flag.NArg() == 0 {
-		rdr = os.Stdin
+		reader = os.Stdin
 	} else {
 		file, err := os.Open(flag.Arg(0))
 		if err != nil {
 			log.Fatal(err)
 		}
-		rdr = file
+		reader = file
 	}
 
-	var visitor xmlray.Visitor
-
-	switch *visitorName {
-	case "d", "default":
-		visitor = xmlray.VisitorFunc(func(s string) error {
-			fmt.Println(s)
-			return nil
-		})
-	case "c", "compact":
-		visitor = xmlray.NewCompactVisitor(*path)
-	case "s", "schema":
-		visitor = xmlray.NewSchemaVisitor(*path, *verbose)
-	case "g", "grouping":
-		v := xmlray.NewGroupingVisitor(*path)
-		v.StopSuffix = []string{"/italic", "/p", "/bold", "/underline"}
-		visitor = v
-	default:
-		log.Fatal("unknown visitor, use: default, compact, schema, grouping")
+	visitor, ok := visitors[*vtype]
+	if !ok {
+		log.Fatal("unknown visitor")
 	}
 
-	if err := xmlray.VisitNodes(rdr, visitor); err != nil {
+	if err := VisitReader(bufio.NewReader(reader), visitor); err != nil {
 		log.Fatal(err)
 	}
 }
