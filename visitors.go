@@ -145,9 +145,11 @@ func (v *PathVisitor) Visit(node interface{}) error {
 }
 
 type tagInfo struct {
-	Repeatable     bool
-	HasChardata    bool
-	AttributeNames []string
+	Repeatable      bool            `json:"repeatable"`
+	HasChardata     bool            `json:"hasChardata"`
+	ChardataSamples []string        `json:"samples"`
+	AttributeNames  map[string]bool `json:"attributeNames"`
+	// add more attributes as needed
 }
 
 // GroupVisitor groups elements starting at PathPrefix.
@@ -156,8 +158,9 @@ type GroupVisitor struct {
 	stack      []string
 	nodeNames  []string
 	recording  bool
-
-	tagMap map[string]tagInfo
+	// tagMap contains the global information about the
+	// tagMap map[string]tagInfo
+	localMap map[string]tagInfo
 }
 
 func (v *GroupVisitor) path() string {
@@ -166,10 +169,17 @@ func (v *GroupVisitor) path() string {
 
 // updateMapping updates the globale entry map.
 func (v *GroupVisitor) updateMapping() {
-	for _, name := range v.nodeNames {
-		log.Println(name)
+	b, err := json.Marshal(v.localMap)
+	if err != nil {
+		panic(err)
 	}
-	log.Println("----")
+	fmt.Println(string(b))
+	v.localMap = nil
+
+	// for _, name := range v.nodeNames {
+	// 	log.Println(name)
+	// }
+	// log.Println("----")
 }
 
 func (v *GroupVisitor) Visit(node interface{}) error {
@@ -177,20 +187,66 @@ func (v *GroupVisitor) Visit(node interface{}) error {
 	case xml.CharData:
 		if v.recording {
 			last := v.nodeNames[len(v.nodeNames)-1]
-			if strings.Contains(last, "@") {
+
+			ti, ok := v.localMap[last]
+			if !ok {
+				panic("invalid localMap")
+			}
+
+			s := strings.TrimSpace(string(node))
+			if s == "" {
 				return nil
 			}
-			if last != "char" && strings.TrimSpace(string(node)) != "" {
-				v.nodeNames = append(v.nodeNames, last+"/#")
-			}
+
+			ti.HasChardata = true
+			ti.ChardataSamples = append(ti.ChardataSamples, s)
+			v.localMap[v.path()] = ti
+
+			// log.Println("last", last)
+
+			// if strings.Contains(last, "@") {
+			// 	return nil
+			// }
+			// if last != "char" && strings.TrimSpace(string(node)) != "" {
+			// 	v.nodeNames = append(v.nodeNames, last+"/#")
+			// }
 		}
 	case xml.StartElement:
 		v.stack = append(v.stack, node.Name.Local)
 		if strings.HasPrefix(v.path(), v.PathPrefix) {
 			v.recording = true
+
+			if v.localMap == nil {
+				v.localMap = make(map[string]tagInfo)
+			}
+
 			v.nodeNames = append(v.nodeNames, v.path())
+			// for _, attr := range node.Attr {
+			// 	v.nodeNames = append(v.nodeNames, v.path()+"/@"+attr.Name.Local)
+			// }
+
+			// the current nodes attribute names
+			attrNames := make(map[string]bool)
 			for _, attr := range node.Attr {
-				v.nodeNames = append(v.nodeNames, v.path()+"/@"+attr.Name.Local)
+				attrNames[attr.Name.Local] = true
+			}
+
+			// lookup tag info if there is any
+			ti, ok := v.localMap[v.path()]
+
+			// if there is none, create a new one, otherwise, this element is repeatable
+			if !ok {
+				v.localMap[v.path()] = tagInfo{
+					Repeatable:      false,
+					AttributeNames:  attrNames,
+					ChardataSamples: make([]string, 0),
+				}
+			} else {
+				ti.Repeatable = true
+				for name := range attrNames {
+					ti.AttributeNames[name] = true
+				}
+				v.localMap[v.path()] = ti
 			}
 		}
 	case xml.EndElement:
