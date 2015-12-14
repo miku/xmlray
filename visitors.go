@@ -144,12 +144,20 @@ func (v *PathVisitor) Visit(node interface{}) error {
 	return nil
 }
 
+type tagInfo struct {
+	Repeatable     bool
+	HasChardata    bool
+	AttributeNames []string
+}
+
 // GroupVisitor groups elements starting at PathPrefix.
 type GroupVisitor struct {
 	PathPrefix string
 	stack      []string
 	nodeNames  []string
 	recording  bool
+
+	tagMap map[string]tagInfo
 }
 
 func (v *GroupVisitor) path() string {
