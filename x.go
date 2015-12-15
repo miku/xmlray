@@ -126,6 +126,7 @@ func (v *RawVisitor) Visit(node interface{}) error {
 	return nil
 }
 
+// ChildmapPrinter dumps results to stdout.
 func ChildmapPrinter() chan *ChildMap {
 	ch := make(chan *ChildMap)
 	go func() {
