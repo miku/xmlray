@@ -58,6 +58,7 @@ func main() {
 		"tag":    &xmlray.TagnameLister{},
 		"group":  &xmlray.GroupVisitor{PathPrefix: *path},
 		"tree":   xmlray.NewTreeVisitor(*path),
+		"raw":    xmlray.NewRawVisitor(*path),
 	}
 
 	var reader io.Reader
