@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"encoding/xml"
 	"fmt"
+	"log"
 	"strings"
 )
 
@@ -84,6 +85,8 @@ type RawVisitor struct {
 	stack StringStack
 	// local keeps hierarchy information for a single element.
 	local *ChildMap
+	// out is a user defined processing unit for childmaps
+	out chan *ChildMap
 }
 
 func NewRawVisitor(prefix string) *RawVisitor {
@@ -91,6 +94,7 @@ func NewRawVisitor(prefix string) *RawVisitor {
 		Prefix: prefix,
 		stack:  StringStack{},
 		local:  NewChildMap(),
+		out:    ChildmapPrinter(),
 	}
 }
 
@@ -110,16 +114,28 @@ func (v *RawVisitor) Visit(node interface{}) error {
 		}
 	case xml.EndElement:
 		if v.Prefix == v.stack.Path() {
-			b, err := json.Marshal(v.local)
-			if err != nil {
-				return err
-			}
-			fmt.Println(string(b))
+			v.out <- v.local
 			v.local = NewChildMap()
 		}
 		v.stack.Pop()
+	case nil:
+		close(v.out)
 	default:
 		return nil
 	}
 	return nil
+}
+
+func ChildmapPrinter() chan *ChildMap {
+	ch := make(chan *ChildMap)
+	go func() {
+		for cm := range ch {
+			b, err := json.Marshal(cm)
+			if err != nil {
+				log.Fatal(err)
+			}
+			fmt.Println(string(b))
+		}
+	}()
+	return ch
 }
