@@ -262,3 +262,98 @@ func (v *GroupVisitor) Visit(node interface{}) error {
 	}
 	return nil
 }
+
+type TreeVisitor struct {
+	PathPrefix string
+	stack      []string
+	recording  bool
+	// store info per node
+	nodes map[string]interface{}
+	// childmap
+	childmap NodeMap
+}
+
+type NodeMap map[string][]string
+
+func (m NodeMap) Add(parent, child string) {
+	m[parent] = append(m[parent], child)
+}
+
+func NewTreeVisitor(path string) *TreeVisitor {
+	return &TreeVisitor{
+		PathPrefix: path,
+		nodes:      make(map[string]interface{}),
+		childmap:   make(NodeMap),
+	}
+}
+
+func (v *TreeVisitor) path() string {
+	return "/" + strings.Join(v.stack, "/")
+}
+
+func (v *TreeVisitor) parent() string {
+	if len(v.stack) < 2 {
+		return ""
+	}
+	return "/" + strings.Join(v.stack[:len(v.stack)-1], "/")
+}
+
+func findNamespaces(attr []xml.Attr) map[string]string {
+	var nss = make(map[string]string)
+	for _, at := range attr {
+		if at.Name.Space == "xmlns" {
+			nss[at.Name.Local] = at.Value
+		}
+	}
+	return nss
+}
+
+func findAttributes(attr []xml.Attr) map[string]string {
+	var attributes = make(map[string]string)
+	for _, at := range attr {
+		if at.Name.Space != "xmlns" {
+			attributes[at.Name.Local] = at.Value
+		}
+	}
+	return attributes
+}
+
+func (v *TreeVisitor) Visit(node interface{}) error {
+	switch node := node.(type) {
+	case xml.StartElement:
+		if v.path() == v.PathPrefix {
+			v.recording = true
+		}
+		v.stack = append(v.stack, node.Name.Local)
+		if v.recording {
+			v.childmap.Add(v.parent(), v.path())
+			v.nodes[v.path()] = map[string]interface{}{
+				"nss":   findNamespaces(node.Attr),
+				"attr":  findAttributes(node.Attr),
+				"name":  node.Name.Local,
+				"space": node.Name.Space,
+			}
+		}
+	case xml.EndElement:
+		if v.path() == v.PathPrefix {
+			v.recording = false
+			b, err := json.Marshal(v.childmap)
+			if err != nil {
+				return err
+			}
+			fmt.Println(string(b))
+
+			b, err = json.Marshal(v.nodes)
+			if err != nil {
+				return err
+			}
+			fmt.Println(string(b))
+
+			v.childmap = make(map[string][]string)
+		}
+		v.stack = v.stack[:len(v.stack)-1]
+		return nil
+
+	}
+	return nil
+}
