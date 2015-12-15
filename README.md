@@ -353,3 +353,14 @@ The smallest unit would probably be:
             // self
         {{ end }}
     }
+
+Possible interfaces
+-------------------
+
+No autogenerate packages, just the struct code.
+
+    $ xmlray -struct -path /article file.xml
+
+Nothing more. Only inferred from file, no XML schema. Optimized for reading, a
+single struct with anonymous structs for nested elements. Comments display
+example values and stats (how often does this element occur).
