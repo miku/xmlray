@@ -38,6 +38,31 @@ func (cm *ChildMap) AddAttr(node, name string) {
 	cm.attrs[node] = append(cm.attrs[node], name)
 }
 
+func (cm *ChildMap) RootElement() string {
+	isChild := make(map[string]bool)
+	for k, v := range cm.nodes {
+		if k == "" {
+			switch len(v) {
+			case 0:
+				return ""
+			case 1:
+				return v[0]
+			default:
+				panic("cannot have more than one root element")
+			}
+		}
+		for _, child := range v {
+			isChild[child] = true
+		}
+	}
+	for k := range cm.nodes {
+		if _, ok := isChild[k]; !ok {
+			return k
+		}
+	}
+	panic("tree without a root")
+}
+
 // StringStack is a simple stack.
 type StringStack struct {
 	fifo []string
@@ -46,6 +71,10 @@ type StringStack struct {
 // Push adds an element to the stack.
 func (s *StringStack) Push(v string) {
 	s.fifo = append(s.fifo, v)
+}
+
+func (s *StringStack) Size() int {
+	return len(s.fifo)
 }
 
 // Pop removes an element, panics on empty stack.
@@ -94,7 +123,8 @@ func NewRawVisitor(prefix string) *RawVisitor {
 		Prefix: prefix,
 		stack:  StringStack{},
 		local:  NewChildMap(),
-		out:    ChildmapPrinter(),
+		// out:    ChildmapPrinter(),
+		out: PathPrinter(),
 	}
 }
 
@@ -136,6 +166,17 @@ func ChildmapPrinter() chan *ChildMap {
 				log.Fatal(err)
 			}
 			fmt.Println(string(b))
+		}
+	}()
+	return ch
+}
+
+// Pathprinter turns the hierarchy into path strings.
+func PathPrinter() chan *ChildMap {
+	ch := make(chan *ChildMap)
+	go func() {
+		for cm := range ch {
+			log.Println(cm.RootElement())
 		}
 	}()
 	return ch
