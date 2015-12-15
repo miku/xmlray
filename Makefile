@@ -30,7 +30,7 @@ cover:
 	go get -d && go test -v	-coverprofile=coverage.out
 	go tool cover -html=coverage.out
 
-xmlray: cmd/xmlray/main.go common.go
+xmlray: cmd/xmlray/main.go visitors.go
 	go build -o xmlray cmd/xmlray/main.go
 
 # ==== packaging
