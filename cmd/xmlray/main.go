@@ -12,8 +12,7 @@ import (
 
 	"github.com/miku/xmlray"
 
-	"code.google.com/p/go-charset/charset"
-	_ "code.google.com/p/go-charset/data"
+	"golang.org/x/net/html/charset"
 )
 
 const Version = "0.0.3"
@@ -21,7 +20,7 @@ const Version = "0.0.3"
 // Visit lets a Visitor v visit all nodes in a XML doc wrapped in a reader.
 func VisitReader(r io.Reader, v xmlray.NodeVisitor) error {
 	dec := xml.NewDecoder(r)
-	dec.CharsetReader = charset.NewReader
+	dec.CharsetReader = charset.NewReaderLabel
 	for {
 		tok, err := dec.Token()
 		if err == io.EOF {
